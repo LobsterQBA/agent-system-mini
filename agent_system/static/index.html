@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A small, readable agent system with a visible loop, local tools, SQLite memory, and trace."
+    />
+    <title>Agent System Mini · The loop, in the open</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <header class="topbar">
+      <a class="wordmark" href="#top" aria-label="Agent System Mini home">
+        <span class="mark" aria-hidden="true">A↻</span>
+        <span>Agent System<br />Mini</span>
+      </a>
+      <div class="topbar-meta">
+        <span id="system-status" class="status-pill"><i></i> local · checking</span>
+        <span class="version">v0.1.0 / readable by design</span>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">ONE TURN. EVERY DECISION VISIBLE.</p>
+          <h1 id="hero-title">The agent loop,<br /><em>in the open.</em></h1>
+          <p class="lede">
+            A small agent system you can read before your coffee gets cold:
+            reason, call a tool, observe the result, repeat, remember.
+          </p>
+        </div>
+
+        <div class="architecture" aria-label="Agent architecture">
+          <article class="pillar active">
+            <span>01</span>
+            <strong>Loop</strong>
+            <small>reason → act → observe</small>
+          </article>
+          <article class="pillar">
+            <span>02</span>
+            <strong>Tools</strong>
+            <small>four safe local functions</small>
+          </article>
+          <article class="pillar">
+            <span>03</span>
+            <strong>Memory</strong>
+            <small>one inspectable SQLite file</small>
+          </article>
+          <article class="pillar">
+            <span>04</span>
+            <strong>Trace</strong>
+            <small>the turn, step by step</small>
+          </article>
+        </div>
+      </section>
+
+      <section class="workbench" aria-label="Agent workbench">
+        <div class="composer-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">TASK / 001</p>
+              <h2>Give the agent a job</h2>
+            </div>
+            <div class="mode-control" aria-label="Agent mode">
+              <button class="mode-button selected" data-mode="demo" type="button">Demo</button>
+              <button class="mode-button" data-mode="live" type="button">Live</button>
+            </div>
+          </div>
+
+          <form id="agent-form">
+            <label for="task-input">Instruction</label>
+            <textarea
+              id="task-input"
+              name="task"
+              rows="5"
+              maxlength="2000"
+              spellcheck="true"
+            >Calculate 17 × 23 and remember the result as launch score.</textarea>
+            <div class="examples" aria-label="Example tasks">
+              <button type="button" data-example="Calculate 17 * 23 and remember the result as launch score.">calculate + remember</button>
+              <button type="button" data-example="What do you remember about launch score?">recall memory</button>
+              <button type="button" data-example="What is the current time?">read local time</button>
+            </div>
+            <div class="run-row">
+              <button id="run-button" class="run-button" type="submit">
+                <span>Run one turn</span>
+                <b aria-hidden="true">↗</b>
+              </button>
+              <p id="mode-note">Deterministic planner · no API key</p>
+            </div>
+          </form>
+
+          <aside class="reply-card" id="reply-card" aria-live="polite">
+            <span class="reply-index">AGENT / REPLY</span>
+            <p id="reply-text">Waiting for a task. The trace will reveal every step.</p>
+          </aside>
+        </div>
+
+        <div class="trace-panel">
+          <div class="panel-heading trace-heading">
+            <div>
+              <p class="panel-kicker">LIVE TRACE</p>
+              <h2>Inside the turn</h2>
+            </div>
+            <span id="trace-clock">0 ms</span>
+          </div>
+          <div id="trace-list" class="trace-list" aria-live="polite">
+            <div class="trace-empty">
+              <div class="loop-glyph" aria-hidden="true"><span>↻</span></div>
+              <p>Run a task to watch the loop reason, act, and observe.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="ledger" aria-labelledby="ledger-title">
+        <div class="ledger-heading">
+          <div>
+            <p class="eyebrow">LOCAL STATE / SQLITE</p>
+            <h2 id="ledger-title">What survives the turn</h2>
+          </div>
+          <div class="metrics">
+            <span><b id="metric-memories">0</b> memories</span>
+            <span><b id="metric-turns">0</b> traced turns</span>
+            <span><b>4</b> local tools</span>
+          </div>
+        </div>
+        <div id="memory-grid" class="memory-grid">
+          <article class="memory-empty">
+            <span>EMPTY BY DEFAULT</span>
+            <p>Ask the agent to remember something. It will appear here and remain after restart.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Built from first principles. Inspired by transparent agent architecture.</p>
+      <p>Python · SQLite · HTML/CSS/JS · no frontend framework</p>
+    </footer>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
