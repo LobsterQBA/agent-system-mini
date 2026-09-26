@@ -29,9 +29,7 @@ def test_demo_agent_chains_calculate_and_remember(tmp_path):
     assert agent.memory.recall("launch score")[0]["value"] == "391"
     assert [event["kind"] for event in turn.trace].count("tool") == 2
     assert turn.trace[-1]["kind"] == "done"
-    tool_events = [
-        event for event in turn.trace if event["kind"] in {"tool", "observe"}
-    ]
+    tool_events = [event for event in turn.trace if event["kind"] in {"tool", "observe"}]
     assert tool_events[0]["tool_call_id"] == tool_events[1]["tool_call_id"]
     assert tool_events[2]["tool_call_id"] == tool_events[3]["tool_call_id"]
     assert tool_events[0]["tool_call_id"] != tool_events[2]["tool_call_id"]
@@ -86,7 +84,9 @@ class ConflictingToolCallModel:
     def complete(self, messages, tools):
         if not any(message.get("role") == "tool" for message in messages):
             return ModelReply(
-                tool_calls=[ToolCall("reused-call-id", "remember", {"key": "state", "value": "one"})]
+                tool_calls=[
+                    ToolCall("reused-call-id", "remember", {"key": "state", "value": "one"})
+                ]
             )
         return ModelReply(
             tool_calls=[ToolCall("reused-call-id", "remember", {"key": "state", "value": "two"})]
@@ -145,6 +145,21 @@ class OversizedToolOutputModel:
             return ModelReply(tool_calls=[ToolCall("large-read", "large_output", {})])
         self.tool_content = tool_messages[-1]["content"]
         return ModelReply(text="Handled the bounded tool result.")
+
+
+class OversizedModelReplyModel:
+    name = "oversized-model-reply"
+
+    def __init__(self, *, with_tool_call):
+        self.with_tool_call = with_tool_call
+
+    def complete(self, messages, tools):
+        tool_calls = []
+        if self.with_tool_call:
+            tool_calls.append(
+                ToolCall("large-reply-write", "remember", {"key": "unsafe", "value": "saved"})
+            )
+        return ModelReply(text="x" * 1_000, tool_calls=tool_calls)
 
 
 def test_iteration_guardrail_stops_endless_tool_calls(tmp_path):
@@ -258,6 +273,32 @@ def test_oversized_tool_output_is_replaced_before_it_reaches_model_context(tmp_p
     assert observation["detail"]["sha256"] == guardrail["detail"]["sha256"]
     assert json.loads(model.tool_content) == observation["detail"]
     assert "x" * 100 not in json.dumps(turn.to_dict())
+
+
+@pytest.mark.parametrize("with_tool_call", [False, True])
+def test_oversized_model_reply_fails_before_trace_persistence_or_tool_effects(
+    tmp_path, with_tool_call
+):
+    memory = MemoryStore(tmp_path / "state.db")
+    agent = AgentSystem(
+        model=OversizedModelReplyModel(with_tool_call=with_tool_call),
+        tools=build_tools(memory),
+        memory=memory,
+        max_model_reply_bytes=256,
+    )
+
+    with pytest.raises(AgentTurnError, match="model reply exceeds 256 bytes") as raised:
+        agent.run("bound the model reply")
+
+    assert raised.value.turn["tool_calls"] == 0
+    assert memory.recall() == []
+    guardrail = raised.value.turn["trace"][-2]
+    assert guardrail["kind"] == "guardrail"
+    assert guardrail["title"] == "Model reply too large"
+    assert guardrail["detail"]["limit_bytes"] == 256
+    assert guardrail["detail"]["original_bytes"] == 1_000
+    assert len(guardrail["detail"]["sha256"]) == 64
+    assert "x" * 100 not in json.dumps(raised.value.turn)
 
 
 def test_duplicate_tool_call_id_reuses_result_without_repeating_side_effect(tmp_path):

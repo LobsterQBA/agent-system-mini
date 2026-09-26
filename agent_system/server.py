@@ -95,6 +95,7 @@ class Application:
                 "max_tool_calls": self.demo.max_tool_calls,
                 "max_tool_argument_bytes": self.demo.max_tool_argument_bytes,
                 "max_tool_output_bytes": self.demo.max_tool_output_bytes,
+                "max_model_reply_bytes": self.demo.max_model_reply_bytes,
             },
         }
 

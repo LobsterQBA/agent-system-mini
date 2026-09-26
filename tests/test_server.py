@@ -41,6 +41,7 @@ def test_local_api_runs_a_demo_turn(tmp_path):
             "max_tool_calls": 12,
             "max_tool_argument_bytes": 8_192,
             "max_tool_output_bytes": 16_384,
+            "max_model_reply_bytes": 32_768,
         }
 
         status, turn = request_json(
@@ -184,9 +185,7 @@ def test_run_requires_json_content_type(tmp_path):
             urllib.request.urlopen(request, timeout=3)
         except urllib.error.HTTPError as exc:
             assert exc.code == 415
-            assert json.loads(exc.read()) == {
-                "error": "Content-Type must be application/json"
-            }
+            assert json.loads(exc.read()) == {"error": "Content-Type must be application/json"}
         else:
             raise AssertionError("non-JSON content type should return HTTP 415")
     finally:

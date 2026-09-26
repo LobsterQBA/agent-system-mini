@@ -85,9 +85,12 @@ Tool results are limited to 16 KiB before they enter the model context or persis
 result becomes a structured error with its original byte count and SHA-256 fingerprint, preserving
 bounded diagnostic evidence without retaining the payload. The tool has already executed at this
 point, so this output guardrail does not roll back side effects.
+Model reply text is limited to 32 KiB before it enters the working context, trace, or database. An
+oversized reply fails the turn before any tool calls in that response execute, while its byte count
+and SHA-256 fingerprint remain in the failed trace for diagnosis.
 Text without tool calls ends the turn. Iteration exhaustion returns a guardrail reply and saves its
 trace. The defaults are six iterations and 12 tool calls; the constructor clamps overrides to 1–12,
-1–50, 256–65,536 argument bytes, and 256–262,144 output bytes respectively.
+1–50, 256–65,536 argument bytes, and 256–262,144 bytes for both tool output and model replies.
 
 Within a turn, the loop keeps the result of each tool-call ID. If a provider repeats the same ID,
 tool name, and arguments, the loop appends a `deduplicate` event and returns the first observation
@@ -188,6 +191,7 @@ success and failure counts. Deterministic tests are not an LLM benchmark.
 | Duplicate IDs in one batch are rejected before side effects | `test_duplicate_ids_in_one_batch_are_rejected_before_side_effects` |
 | Oversized tool arguments reject the whole batch before side effects | `test_oversized_tool_arguments_reject_the_batch_before_side_effects` |
 | Oversized tool output is replaced before model context and persistence | `test_oversized_tool_output_is_replaced_before_it_reaches_model_context` |
+| Oversized model reply text fails before tool effects or payload persistence | `test_oversized_model_reply_fails_before_trace_persistence_or_tool_effects` |
 | Provider failure after a write persists status, error, and partial-effect evidence | `test_failed_turn_is_persisted_with_partial_tool_effects` |
 | Duplicate tool-call IDs do not repeat side effects | `test_duplicate_tool_call_id_reuses_result_without_repeating_side_effect` |
 | Existing SQLite turn ledgers migrate with completed status | `test_memory_migrates_existing_turn_ledgers` |

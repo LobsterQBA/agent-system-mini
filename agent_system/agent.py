@@ -19,6 +19,7 @@ MAX_USER_MESSAGE_CHARS = 2_000
 DEFAULT_MAX_TOOL_CALLS = 12
 DEFAULT_MAX_TOOL_ARGUMENT_BYTES = 8_192
 DEFAULT_MAX_TOOL_OUTPUT_BYTES = 16_384
+DEFAULT_MAX_MODEL_REPLY_BYTES = 32_768
 
 
 @dataclass(frozen=True)
@@ -75,6 +76,7 @@ class AgentSystem:
         max_tool_calls: int = DEFAULT_MAX_TOOL_CALLS,
         max_tool_argument_bytes: int = DEFAULT_MAX_TOOL_ARGUMENT_BYTES,
         max_tool_output_bytes: int = DEFAULT_MAX_TOOL_OUTPUT_BYTES,
+        max_model_reply_bytes: int = DEFAULT_MAX_MODEL_REPLY_BYTES,
     ):
         self.model = model
         self.tools = tools
@@ -84,6 +86,7 @@ class AgentSystem:
         self.max_tool_calls = max(1, min(max_tool_calls, 50))
         self.max_tool_argument_bytes = max(256, min(max_tool_argument_bytes, 65_536))
         self.max_tool_output_bytes = max(256, min(max_tool_output_bytes, 262_144))
+        self.max_model_reply_bytes = max(256, min(max_model_reply_bytes, 262_144))
 
     def run(self, user_message: str) -> AgentTurn:
         user_message = " ".join(user_message.strip().split())
@@ -121,6 +124,18 @@ class AgentSystem:
                 iterations = iteration
                 emit("reason", f"Model call · iteration {iteration}", {"model": self.model.name})
                 model_reply = self.model.complete(messages, self.tools.schemas())
+                reply_bytes = model_reply.text.encode("utf-8")
+                if len(reply_bytes) > self.max_model_reply_bytes:
+                    emit(
+                        "guardrail",
+                        "Model reply too large",
+                        {
+                            "limit_bytes": self.max_model_reply_bytes,
+                            "original_bytes": len(reply_bytes),
+                            "sha256": hashlib.sha256(reply_bytes).hexdigest(),
+                        },
+                    )
+                    raise RuntimeError(f"model reply exceeds {self.max_model_reply_bytes} bytes")
 
                 if not model_reply.tool_calls:
                     reply = model_reply.text.strip() or "The model returned an empty reply."
