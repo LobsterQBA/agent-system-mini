@@ -32,6 +32,20 @@ class Model(Protocol):
     def complete(self, messages: list[dict], tools: list[dict]) -> ModelReply: ...
 
 
+def _parse_tool_arguments(*, call_id: str, tool_name: str, raw_arguments: str | None) -> dict:
+    try:
+        arguments = json.loads(raw_arguments or "{}")
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"tool call {call_id!r} for {tool_name!r} returned invalid JSON arguments"
+        ) from exc
+    if not isinstance(arguments, dict):
+        raise TypeError(
+            f"tool call {call_id!r} for {tool_name!r} arguments must decode to an object"
+        )
+    return arguments
+
+
 def _tool_call(name: str, **arguments) -> ModelReply:
     return ModelReply(tool_calls=[ToolCall(f"demo-{uuid4().hex[:8]}", name, arguments)])
 
@@ -70,9 +84,7 @@ class DemoModel:
     name = "demo-planner"
 
     def complete(self, messages: list[dict], tools: list[dict]) -> ModelReply:
-        user_message = next(
-            (m.get("content", "") for m in messages if m.get("role") == "user"), ""
-        )
+        user_message = next((m.get("content", "") for m in messages if m.get("role") == "user"), "")
         lower = user_message.lower()
         results = _tool_results(messages)
         expression = _arithmetic_expression(user_message)
@@ -82,10 +94,11 @@ class DemoModel:
             for phrase in ("recall", "what do you remember", "memory", "你记得", "回忆")
         )
         wants_memory = (
-            any(word in lower for word in ("remember", "save", "记住", "保存"))
-            and not wants_recall
+            any(word in lower for word in ("remember", "save", "记住", "保存")) and not wants_recall
         )
-        wants_time = any(phrase in lower for phrase in ("what time", "current time", "几点", "时间"))
+        wants_time = any(
+            phrase in lower for phrase in ("what time", "current time", "几点", "时间")
+        )
 
         if expression and "calculate" not in results:
             return _tool_call("calculate", expression=expression)
@@ -133,7 +146,8 @@ class DemoModel:
                 elif tool_name == "recall":
                     summaries.append(
                         "Found: " + "; ".join(f"{item['key']} = {item['value']}" for item in result)
-                        if result else "No matching memories found."
+                        if result
+                        else "No matching memories found."
                     )
                 else:
                     summaries.append(f"Local time: {result}.")
@@ -172,9 +186,10 @@ class LiveModel:
         message = response.choices[0].message
         calls = []
         for call in message.tool_calls or []:
-            try:
-                arguments = json.loads(call.function.arguments or "{}")
-            except json.JSONDecodeError:
-                arguments = {}
+            arguments = _parse_tool_arguments(
+                call_id=call.id,
+                tool_name=call.function.name,
+                raw_arguments=call.function.arguments,
+            )
             calls.append(ToolCall(call.id, call.function.name, arguments))
         return ModelReply(text=message.content or "", tool_calls=calls)

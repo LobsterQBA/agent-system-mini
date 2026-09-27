@@ -36,9 +36,11 @@ six planner calls by default if it has not finished, and a separate 12-call tool
 prevents one model response from bypassing that limit with an oversized batch. Each tool
 call's serialized arguments are capped at 8 KiB before any tool in the batch executes. Tool
 schemas also reject missing, extra, incorrectly typed, or out-of-range string arguments before
-execution. Tool results above 16 KiB are replaced with a bounded error and SHA-256 fingerprint
-before they enter the next model context or persisted trace. Model reply text above 32 KiB fails
-the turn before tool execution or trace persistence, retaining only its size and fingerprint.
+execution. Live-provider tool arguments must decode as a JSON object; malformed payloads fail the
+turn instead of being rewritten into an executable empty argument set. Tool results above 16 KiB
+are replaced with a bounded error and SHA-256 fingerprint before they enter the next model context
+or persisted trace. Model reply text above 32 KiB fails the turn before tool execution or trace
+persistence, retaining only its size and fingerprint.
 
 ## Three examples
 
@@ -133,8 +135,8 @@ python -m agent_system.walkthrough
 ```
 
 The walkthrough checks calculation, saving, recall in a fresh process, and a failed calculation.
-The tests also cover loop, tool-call, argument-size, tool-output, and model-reply budgets, tool-schema validation
-including declared string limits,
+The tests also cover loop, tool-call, argument-size, tool-output, and model-reply budgets, provider
+tool-argument parsing, tool-schema validation including declared string limits,
 duplicate IDs and retried tool calls, matching tool-call/observation identities, failure records,
 reopening saved traces, and HTTP input validation.
 

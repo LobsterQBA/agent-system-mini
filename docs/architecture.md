@@ -72,6 +72,9 @@ sequenceDiagram
 The loop uses the same `Model.complete(messages, tools)` interface for both modes.
 `DemoModel` recognizes a few patterns; it does not simulate LLM quality. `LiveModel` calls an
 OpenAI-compatible chat-completions endpoint with function schemas. No model SDK is needed for demo mode.
+The live adapter accepts a tool call only when its argument payload is valid JSON that decodes to an
+object. Invalid or non-object arguments fail the turn before the registry or any tool can run; the
+error identifies the call and tool without copying the provider payload into persisted evidence.
 
 An iteration is a model/planner call, not a tool call. Multiple tools returned in one iteration execute
 sequentially only when the whole batch fits within the turn's remaining tool-call budget. The batch is
@@ -198,6 +201,7 @@ success and failure counts. Deterministic tests are not an LLM benchmark.
 | Completed and failed turns retain model provenance after reload | `test_local_api_runs_a_demo_turn`, `test_failed_agent_turn_returns_its_persisted_trace` |
 | Restricted arithmetic and tool errors | [test_tools.py](../tests/test_tools.py) |
 | Invalid tool arguments and declared string-length violations are rejected before the function runs | `test_tool_registry_validates_schema_before_execution`, `test_built_in_tools_enforce_declared_string_limits_before_execution` |
+| Malformed or non-object provider tool arguments fail before tool execution | [test_models.py](../tests/test_models.py) |
 | Input validation and local API | [test_server.py](../tests/test_server.py) |
 | Persisted traces can be reopened and unknown IDs return 404 | `test_local_api_runs_a_demo_turn`, `test_saved_turn_api_returns_not_found_for_unknown_or_invalid_id` |
 | Turn status, trace steps, timing, non-empty call-to-observation identity, terminal event, and outcome are checked | [test_evaluation.py](../tests/test_evaluation.py) |
