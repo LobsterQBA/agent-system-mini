@@ -171,7 +171,8 @@ success and failure counts. Deterministic tests are not an LLM benchmark.
 
 - HTTP input must be JSON, with a nonempty message of at most 2,000 characters. The request body is capped at 16,384 bytes.
 - The calculator allows a restricted AST and rejects calls, names, complex results, nonfinite results,
-  and results beyond its numeric bound. This is not a general code sandbox or CPU budget.
+  and values beyond its numeric bound at every step, before later arithmetic can hide or amplify
+  them. This is not a general code sandbox or CPU budget.
 - Registered tool exceptions become `{ok: false, error: ...}` observations. Schemas describe inputs
   to the model, and the registry enforces the object constraints used here: required fields,
   primitive field types, rejection of extra fields, and declared string-length bounds. It is not a

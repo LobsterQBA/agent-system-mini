@@ -32,6 +32,11 @@ def test_calculator_rejects_complex_results():
         safe_calculate("(-1) ** 0.5")
 
 
+def test_calculator_rejects_oversized_intermediate_results():
+    with pytest.raises(ValueError, match="result is too large"):
+        safe_calculate("(10**12 * 10**12) / (10**12 * 10**12)")
+
+
 def test_tool_registry_surfaces_errors_as_data(tmp_path):
     registry = build_tools(MemoryStore(tmp_path / "state.db"))
     output = json.loads(registry.execute("calculate", {"expression": "1 / 0"}))

@@ -151,27 +151,29 @@ def safe_calculate(expression: str) -> int | float:
         raise ValueError("expression is too long")
     tree = ast.parse(expression, mode="eval")
 
+    def validate_result(value: float) -> int | float:
+        if type(value) not in (int, float):
+            raise ValueError("result must be a real number")
+        if abs(value) > MAX_CALCULATION_RESULT or not math.isfinite(value):
+            raise ValueError("result is too large")
+        return value
+
     def visit(node: ast.AST) -> int | float:
         if isinstance(node, ast.Expression):
             return visit(node.body)
         if isinstance(node, ast.Constant) and type(node.value) in (int, float):
-            return node.value
+            return validate_result(node.value)
         if isinstance(node, ast.BinOp) and type(node.op) in _BINARY_OPERATORS:
             left, right = visit(node.left), visit(node.right)
             if isinstance(node.op, ast.Pow) and abs(right) > 12:
                 raise ValueError("exponent is too large")
             result = _BINARY_OPERATORS[type(node.op)](left, right)
-            return result
+            return validate_result(result)
         if isinstance(node, ast.UnaryOp) and type(node.op) in _UNARY_OPERATORS:
-            return _UNARY_OPERATORS[type(node.op)](visit(node.operand))
+            return validate_result(_UNARY_OPERATORS[type(node.op)](visit(node.operand)))
         raise ValueError("only basic arithmetic is allowed")
 
-    result = visit(tree)
-    if type(result) not in (int, float):
-        raise ValueError("result must be a real number")
-    if abs(result) > MAX_CALCULATION_RESULT or not math.isfinite(result):
-        raise ValueError("result is too large")
-    return result
+    return visit(tree)
 
 
 def build_tools(memory: MemoryStore) -> ToolRegistry:
