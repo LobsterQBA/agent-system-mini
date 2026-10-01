@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterator
+from contextlib import closing, contextmanager
 from pathlib import Path
 
 SCHEMA = """
@@ -59,11 +61,14 @@ class MemoryStore:
                 if name not in columns:
                     conn.execute(f"ALTER TABLE turns ADD COLUMN {name} {definition}")
 
-    def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.path, timeout=3)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA busy_timeout=3000")
-        return conn
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        # SQLite's transaction context commits/rolls back but does not close.
+        with closing(sqlite3.connect(self.path, timeout=3)) as conn:
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA busy_timeout=3000")
+            with conn:
+                yield conn
 
     def remember(self, key: str, value: str) -> dict:
         key = " ".join(key.strip().split())[:80]
